@@ -43,7 +43,7 @@ public class Consumer implements Runnable  {
     public void consume(Consumer consumer, Integer capacity) throws Exception {
         List<String> data = q.request(this, capacity);
         for(String s: data) {
-            System.out.println("data");
+            System.out.println("Consumer: "+ consumerName + " ,Data:" + s);
         }
     }
 

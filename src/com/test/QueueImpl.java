@@ -35,7 +35,11 @@ public class QueueImpl implements Queue{
         if(consumersData.get(consumer.getTopic()).getOrDefault(consumer.getConsumerGroup(), new ArrayList<>()).size()>=topicData.get(consumer.getTopic()).size())
             throw new Exception("Consumers cannot be more than the No of partitions");
         consumersData.get(consumer.getTopic()).computeIfAbsent(consumer.getConsumerGroup(), (k)-> new ArrayList<>()).add(consumer);
-        return consumersData.get(consumer.getTopic()).get(consumer.getConsumerGroup()).size();
+        int partition = (consumersData.get(consumer.getTopic()).get(consumer.getConsumerGroup()).size()-1);
+        List<ListNode> data = topicData.get(consumer.getTopic()).get(partition);
+        offsetDetails.computeIfAbsent(consumer.getConsumerGroup(),(v)-> new ConcurrentHashMap<>())
+                .computeIfAbsent(partition, v->new OffsetData(0, data.get(0)));
+        return partition;
     }
 
     @Override
@@ -45,12 +49,12 @@ public class QueueImpl implements Queue{
             throw new Exception("Consumer is not registered");
         List<String> data = new ArrayList<>();
         List<ListNode> dataInTopicPartition = topicData.get(consumer.getTopic()).get(consumer.getPartition());
-        int currentIndex = dataInTopicPartition.indexOf(offsetDetails.get(consumer.getConsumerGroup()).get(consumer.getConsumerGroup()).getNode());
+        int currentIndex = dataInTopicPartition.indexOf(offsetDetails.get(consumer.getConsumerGroup()).get(consumer.getPartition()).getNode());
         int i = 0;
         for (i = 0; i < capacity && (currentIndex + i) < dataInTopicPartition.size(); i++) {
             data.add(dataInTopicPartition.get(currentIndex + i).getData());
         }
-        offsetDetails.get(consumer.getConsumerGroup()).put(consumer.getPartition(), new OffsetData(currentIndex + i, dataInTopicPartition.get(currentIndex+ capacity)));
+        offsetDetails.get(consumer.getConsumerGroup()).put(consumer.getPartition(), new OffsetData(currentIndex + i-1, dataInTopicPartition.get(currentIndex+ i-1)));
         return data;
     }
 
